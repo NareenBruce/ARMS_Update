@@ -1,0 +1,26 @@
+# --- Python ---
+venv_arms/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# --- Node / Next.js (frontend) ---
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+frontend/coverage/
+frontend/*.tsbuildinfo
+frontend/.vercel
+
+# --- Env / secrets ---
+.env
+.env.*
+backend/.env
+!.env.example
+
+# --- OS / editor ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
