@@ -6,7 +6,7 @@ import logging
 import csv
 import os
 
-from config import REVIEWERS_DB_FILE, REVIEWERS_PKL_FILE, REVIEWERS_SQLITE_FILE, MODEL_NAME, GROQ_API_KEY
+from config import REVIEWERS_DB_FILE, REVIEWERS_PKL_FILE, REVIEWERS_SQLITE_FILE, MODEL_NAME, GROQ_API_KEY, DATA_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,6 @@ def init_reviewers_database():
             data = json.load(f)
         return len(data) if data else 0
     except (FileNotFoundError, json.JSONDecodeError):
-        print("fucekd upo bro")
         return 0
 
 
@@ -64,7 +63,7 @@ def init_embeddings(model):
 
         from scraper.scholar_scraper import scrape_batch_reviewers
 
-        csv_path = r"C:\Users\naree\Desktop\Vibe\data\mmu_reviewer_list.csv"
+        csv_path = os.path.join(DATA_DIR, "mmu_reviewer_list.csv")
 
         if not os.path.exists(csv_path):
             logger.warning(f"[Data Scraper] CSV file not found: {csv_path}")
