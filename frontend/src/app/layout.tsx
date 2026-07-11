@@ -26,7 +26,7 @@ const themes = {
     statBg: "bg-zinc-800",
     borderFaint: "border-zinc-800/50",
     border: "border-zinc-800",
-    badge: { active: "bg-emerald-500/20 text-emerald-400", mild: "bg-amber-500/20 text-amber-400", inactive: "bg-red-500/20 text-red-400", specialist: "bg-blue-500/20 text-blue-400", moderate: "bg-zinc-500/20 text-zinc-400", generalist: "bg-orange-500/20 text-orange-400", verified: "bg-emerald-500/20 text-emerald-400", unverified: "bg-red-500/20 text-red-400" },
+    badge: { active: "bg-emerald-500/20 text-emerald-400", mild: "bg-amber-500/20 text-amber-400", inactive: "bg-red-500/20 text-red-400", specialist: "bg-blue-500/20 text-blue-400", moderate: "bg-zinc-500/20 text-zinc-400", generalist: "bg-orange-500/20 text-orange-400", strong: "bg-emerald-500/20 text-emerald-400", good: "bg-blue-500/20 text-blue-400", weak: "bg-zinc-500/20 text-zinc-400", verified: "bg-emerald-500/20 text-emerald-400", unverified: "bg-red-500/20 text-red-400" },
     resultCard: { verified: "bg-emerald-500/10 text-emerald-400", unverified: "bg-amber-500/10 text-amber-400", inactive: "bg-orange-500/10 text-orange-400", failed: "bg-red-500/10 text-red-400" },
   },
   light: {
@@ -41,7 +41,7 @@ const themes = {
     statBg: "bg-gray-50",
     borderFaint: "border-gray-100",
     border: "border-gray-200",
-    badge: { active: "bg-emerald-50 text-emerald-700", mild: "bg-amber-50 text-amber-700", inactive: "bg-red-50 text-red-700", specialist: "bg-blue-50 text-blue-700", moderate: "bg-gray-100 text-gray-600", generalist: "bg-orange-50 text-orange-700", verified: "bg-emerald-50 text-emerald-700", unverified: "bg-red-50 text-red-700" },
+    badge: { active: "bg-emerald-50 text-emerald-700", mild: "bg-amber-50 text-amber-700", inactive: "bg-red-50 text-red-700", specialist: "bg-blue-50 text-blue-700", moderate: "bg-gray-100 text-gray-600", generalist: "bg-orange-50 text-orange-700", strong: "bg-emerald-50 text-emerald-700", good: "bg-blue-50 text-blue-700", weak: "bg-gray-100 text-gray-600", verified: "bg-emerald-50 text-emerald-700", unverified: "bg-red-50 text-red-700" },
     resultCard: { verified: "bg-emerald-50 text-emerald-700", unverified: "bg-amber-50 text-amber-700", inactive: "bg-orange-50 text-orange-700", failed: "bg-red-50 text-red-700" },
   },
 };

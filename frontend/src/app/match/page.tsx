@@ -164,9 +164,9 @@ export default function MatchPage() {
 
   function getReliabilityBadge(reliability: string) {
     switch (reliability) {
-      case "Specialist": return t.badge.specialist;
-      case "Moderate": return t.badge.moderate;
-      case "Generalist": return t.badge.generalist;
+      case "Strong Fit": return t.badge.strong;
+      case "Good Fit": return t.badge.good;
+      case "Weak Fit": return t.badge.weak;
       default: return t.badge.moderate;
     }
   }

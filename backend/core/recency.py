@@ -24,12 +24,3 @@ def classify_recency(avg_recency):
         return "Mildly Active"
     else:
         return "Not Active"
-
-
-def classify_std_dev(std_dev):
-    if std_dev < 0.10:
-        return "Specialist"
-    elif std_dev < 0.20:
-        return "Moderate"
-    else:
-        return "Generalist"

@@ -1,28 +1,37 @@
-import statistics
-
 from sentence_transformers import util
 
-from core.recency import get_recency_weight, classify_recency, classify_std_dev
+from core.recency import get_recency_weight, classify_recency
 from core.llm_agent import generate_llm_justification
 from scraper.active_filter import extract_year
 from config import TOP_N, ACTIVE_YEAR_THRESHOLD
 
 
+def classify_match_confidence(wtd_score):
+    """Labels how well the reviewer fits THIS topic, from the weighted match
+    score (the same value shown as the percentage on the result card)."""
+    if wtd_score >= 0.60:
+        return "Strong Fit"
+    elif wtd_score >= 0.40:
+        return "Good Fit"
+    else:
+        return "Weak Fit"
+
+
 def get_expert_scores(expert, query_embedding, start_year=ACTIVE_YEAR_THRESHOLD):
     papers = expert.get('publications', [])
     if not papers:
-        return 0, 0, 0, "No Data", [], "Not Active"
+        return 0, 0, "No Data", [], "Not Active"
 
     papers_with_emb = [p for p in papers if 'embedding' in p]
     if not papers_with_emb:
-        return 0, 0, 0, "No Embeddings", [], "Not Active"
+        return 0, 0, "No Embeddings", [], "Not Active"
 
     # Publication-year filter (match-time). Default equals the DB floor, so it
     # is a no-op unless the user raises the year above ACTIVE_YEAR_THRESHOLD.
     if start_year > ACTIVE_YEAR_THRESHOLD:
         papers_with_emb = [p for p in papers_with_emb if extract_year(p.get('year')) >= start_year]
         if not papers_with_emb:
-            return 0, 0, 0, "No Papers In Range", [], "Not Active"
+            return 0, 0, "No Papers In Range", [], "Not Active"
 
     paper_embeddings = [p['embedding'] for p in papers_with_emb]
     raw_scores = util.cos_sim(query_embedding, paper_embeddings)[0].tolist()
@@ -46,7 +55,6 @@ def get_expert_scores(expert, query_embedding, start_year=ACTIVE_YEAR_THRESHOLD)
 
     k = len(top_3_weighted)
     top_3_mean = sum(top_3_weighted) / k if k > 0 else 0
-    std_dev = statistics.stdev(weighted_scores) if len(weighted_scores) > 1 else 0.0
 
     # Recency label — computed over the top-3 topic-matching papers only, so it
     # reflects how recently this reviewer has worked on THIS specific topic
@@ -56,7 +64,7 @@ def get_expert_scores(expert, query_embedding, start_year=ACTIVE_YEAR_THRESHOLD)
     avg_recency = sum(top_3_weights) / len(top_3_weights) if top_3_weights else 0.0
     recency_label = classify_recency(avg_recency)
 
-    return top_3_mean, max_weighted, std_dev, best_paper_title, top_3_titles, recency_label
+    return top_3_mean, max_weighted, best_paper_title, top_3_titles, recency_label
 
 
 def run_matching(experts, model, title, abstract, keywords, start_year=ACTIVE_YEAR_THRESHOLD):
@@ -78,7 +86,7 @@ def run_matching(experts, model, title, abstract, keywords, start_year=ACTIVE_YE
     expert_meta = {}
 
     for person in experts:
-        mean, mx, std, best_paper, top_3_titles, recency_label = get_expert_scores(person, query_embedding, start_year)
+        mean, mx, best_paper, top_3_titles, recency_label = get_expert_scores(person, query_embedding, start_year)
 
         if mx > 0.25:
             expert_meta[person['name']] = top_3_titles
@@ -88,7 +96,7 @@ def run_matching(experts, model, title, abstract, keywords, start_year=ACTIVE_YE
                 "university": person.get('university', ''),
                 "wtd_score": round(mean, 4),
                 "wtd_max": round(mx, 4),
-                "reliability": classify_std_dev(std),
+                "reliability": classify_match_confidence(mean),
                 "recency": recency_label,
                 "best_paper": best_paper,
                 "top_3_papers": top_3_titles
