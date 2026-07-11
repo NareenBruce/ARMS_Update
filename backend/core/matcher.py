@@ -48,9 +48,12 @@ def get_expert_scores(expert, query_embedding, start_year=ACTIVE_YEAR_THRESHOLD)
     top_3_mean = sum(top_3_weighted) / k if k > 0 else 0
     std_dev = statistics.stdev(weighted_scores) if len(weighted_scores) > 1 else 0.0
 
-    # Recency label
-    all_weights = [get_recency_weight(p.get('year', '')) for p in papers_with_emb]
-    avg_recency = sum(all_weights) / len(all_weights) if all_weights else 0.0
+    # Recency label — computed over the top-3 topic-matching papers only, so it
+    # reflects how recently this reviewer has worked on THIS specific topic
+    # rather than their overall publishing activity across all fields.
+    top_3_papers = [p[1] for p in top_3_pairs]
+    top_3_weights = [get_recency_weight(p.get('year', '')) for p in top_3_papers]
+    avg_recency = sum(top_3_weights) / len(top_3_weights) if top_3_weights else 0.0
     recency_label = classify_recency(avg_recency)
 
     return top_3_mean, max_weighted, std_dev, best_paper_title, top_3_titles, recency_label
