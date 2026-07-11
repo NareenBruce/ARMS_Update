@@ -8,6 +8,7 @@ class ManualMatchRequest(BaseModel):
     title: str
     abstract: Optional[str] = ""
     keywords: Optional[str] = ""
+    start_year: Optional[int] = 2020
 
 
 class SingleScrapeRequest(BaseModel):

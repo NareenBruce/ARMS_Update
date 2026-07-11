@@ -4,10 +4,11 @@ from sentence_transformers import util
 
 from core.recency import get_recency_weight, classify_recency, classify_std_dev
 from core.llm_agent import generate_llm_justification
-from config import TOP_N
+from scraper.active_filter import extract_year
+from config import TOP_N, ACTIVE_YEAR_THRESHOLD
 
 
-def get_expert_scores(expert, query_embedding):
+def get_expert_scores(expert, query_embedding, start_year=ACTIVE_YEAR_THRESHOLD):
     papers = expert.get('publications', [])
     if not papers:
         return 0, 0, 0, "No Data", [], "Not Active"
@@ -15,6 +16,13 @@ def get_expert_scores(expert, query_embedding):
     papers_with_emb = [p for p in papers if 'embedding' in p]
     if not papers_with_emb:
         return 0, 0, 0, "No Embeddings", [], "Not Active"
+
+    # Publication-year filter (match-time). Default equals the DB floor, so it
+    # is a no-op unless the user raises the year above ACTIVE_YEAR_THRESHOLD.
+    if start_year > ACTIVE_YEAR_THRESHOLD:
+        papers_with_emb = [p for p in papers_with_emb if extract_year(p.get('year')) >= start_year]
+        if not papers_with_emb:
+            return 0, 0, 0, "No Papers In Range", [], "Not Active"
 
     paper_embeddings = [p['embedding'] for p in papers_with_emb]
     raw_scores = util.cos_sim(query_embedding, paper_embeddings)[0].tolist()
@@ -48,8 +56,12 @@ def get_expert_scores(expert, query_embedding):
     return top_3_mean, max_weighted, std_dev, best_paper_title, top_3_titles, recency_label
 
 
-def run_matching(experts, model, title, abstract, keywords):
-    """Runs the full matching pipeline. Returns list of result dicts."""
+def run_matching(experts, model, title, abstract, keywords, start_year=ACTIVE_YEAR_THRESHOLD):
+    """Runs the full matching pipeline. Returns list of result dicts.
+
+    start_year filters each reviewer's publications to those from that year
+    onward before scoring. Defaults to ACTIVE_YEAR_THRESHOLD (the DB floor).
+    """
     query_parts = [title]
     if keywords:
         query_parts.append(keywords)
@@ -63,7 +75,7 @@ def run_matching(experts, model, title, abstract, keywords):
     expert_meta = {}
 
     for person in experts:
-        mean, mx, std, best_paper, top_3_titles, recency_label = get_expert_scores(person, query_embedding)
+        mean, mx, std, best_paper, top_3_titles, recency_label = get_expert_scores(person, query_embedding, start_year)
 
         if mx > 0.25:
             expert_meta[person['name']] = top_3_titles

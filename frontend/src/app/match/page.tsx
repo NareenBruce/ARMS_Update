@@ -31,10 +31,18 @@ export default function MatchPage() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [batchFile, setBatchFile] = useState<File | null>(null);
   const [batchPreview, setBatchPreview] = useState<any[] | null>(null);
+  const [startYear, setStartYear] = useState(2020);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<MatchResponse | null>(null);
   const [error, setError] = useState("");
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  // Publication-year filter options: 2020 (DB floor) → current year.
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from(
+    { length: Math.max(1, currentYear - 2020 + 1) },
+    (_, i) => 2020 + i
+  );
 
   // simple CSV parser that respects double quotes for preview
   function parseCSV(text: string) {
@@ -83,17 +91,19 @@ export default function MatchPage() {
         res = await fetch(`${API_URL}/api/match/manual`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title, abstract, keywords }),
+          body: JSON.stringify({ title, abstract, keywords, start_year: startYear }),
         });
       } else if (mode === "pdf") {
         if (!pdfFile) { setError("Please upload a PDF."); return; }
         const formData = new FormData();
         formData.append("file", pdfFile);
+        formData.append("start_year", String(startYear));
         res = await fetch(`${API_URL}/api/match/pdf`, { method: "POST", body: formData });
       } else {
         if (!batchFile) { setError("Please upload a CSV or JSON file."); return; }
         const formData = new FormData();
         formData.append("file", batchFile);
+        formData.append("start_year", String(startYear));
         res = await fetch(`${API_URL}/api/match/batch`, {
           method: "POST",
           body: formData,
@@ -252,6 +262,27 @@ export default function MatchPage() {
               )}
             </div>
           )}
+
+          {/* Publication-year filter — applies to all modes */}
+          <div className="mt-6">
+            <label className={`block text-sm ${t.mutedText} mb-1`}>Only consider publications from</label>
+            <select
+              value={startYear}
+              onChange={(e) => setStartYear(parseInt(e.target.value))}
+              className={`w-full ${t.inputBg} rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-violet-500`}
+            >
+              {yearOptions.map((y) => (
+                <option key={y} value={y}>
+                  {y === 2020 ? `${y} onwards (all publications)` : `${y} onwards`}
+                </option>
+              ))}
+            </select>
+            {startYear > 2020 && (
+              <p className={`${t.mutedText} text-xs mt-1 opacity-70`}>
+                Reviewers with no publications since {startYear} will be excluded from results.
+              </p>
+            )}
+          </div>
 
           <button type="submit" disabled={loading}
             className="w-full mt-6 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg transition-colors">

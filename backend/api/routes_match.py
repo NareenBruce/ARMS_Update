@@ -6,8 +6,19 @@ from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from core.matcher import run_matching
 from core.pdf_extractor import extract_info_from_pdf
 from models import ManualMatchRequest, MatchResponse
+from config import ACTIVE_YEAR_THRESHOLD, CURRENT_YEAR
 
 router = APIRouter(prefix="/api/match", tags=["Matching"])
+
+
+def _clamp_start_year(start_year):
+    """Clamp the publication-year filter to [ACTIVE_YEAR_THRESHOLD, CURRENT_YEAR]."""
+    if start_year is None:
+        return ACTIVE_YEAR_THRESHOLD
+    try:
+        return max(ACTIVE_YEAR_THRESHOLD, min(int(start_year), CURRENT_YEAR))
+    except (ValueError, TypeError):
+        return ACTIVE_YEAR_THRESHOLD
 
 
 @router.post("/manual", response_model=MatchResponse)
@@ -23,7 +34,8 @@ async def match_manual(req: ManualMatchRequest):
         model=app_state["model"],
         title=req.title,
         abstract=req.abstract or "",
-        keywords=req.keywords or ""
+        keywords=req.keywords or "",
+        start_year=_clamp_start_year(req.start_year)
     )
     return result
 
@@ -33,7 +45,8 @@ async def match_pdf(
     file: UploadFile = File(...),
     title: str = Form(None),
     abstract: str = Form(None),
-    keywords: str = Form(None)
+    keywords: str = Form(None),
+    start_year: int = Form(2020)
 ):
     """Match reviewers using an uploaded PDF. Optionally override extracted fields."""
     from main import app_state
@@ -67,7 +80,8 @@ async def match_pdf(
             model=app_state["model"],
             title=final_title,
             abstract=final_abstract or "",
-            keywords=final_keywords or ""
+            keywords=final_keywords or "",
+            start_year=_clamp_start_year(start_year)
         )
         return result
     finally:
@@ -133,7 +147,8 @@ def _read_batch_titles(file_path):
 
 @router.post("/batch")
 async def match_batch(
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    start_year: int = Form(2020)
 ):
     """Accepts a CSV or JSON file of paper titles and matches them against the database.
     Returns a wide-column CSV response.
@@ -163,6 +178,8 @@ async def match_batch(
     if not titles:
         raise HTTPException(status_code=400, detail="Could not extract titles from file.")
 
+    clamped_start_year = _clamp_start_year(start_year)
+
     output = io.StringIO()
     writer = csv.writer(output)
 
@@ -186,7 +203,8 @@ async def match_batch(
             model=app_state["model"],
             title=title,
             abstract="",
-            keywords=""
+            keywords="",
+            start_year=clamped_start_year
         )
         results = match_res.get("results", [])
         
