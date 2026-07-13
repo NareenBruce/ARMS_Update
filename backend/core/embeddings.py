@@ -6,7 +6,7 @@ import logging
 import csv
 import os
 
-from config import REVIEWERS_DB_FILE, REVIEWERS_PKL_FILE, REVIEWERS_SQLITE_FILE, MODEL_NAME, GROQ_API_KEY
+from config import REVIEWERS_DB_FILE, REVIEWERS_PKL_FILE, REVIEWERS_SQLITE_FILE, MODEL_NAME, GROQ_API_KEY, DATA_DIR
 
 logger = logging.getLogger(__name__)
 
@@ -20,7 +20,6 @@ def init_reviewers_database():
             data = json.load(f)
         return len(data) if data else 0
     except (FileNotFoundError, json.JSONDecodeError):
-        print("fucekd upo bro")
         return 0
 
 
@@ -64,7 +63,7 @@ def init_embeddings(model):
 
         from scraper.scholar_scraper import scrape_batch_reviewers
 
-        csv_path = r"C:\Users\naree\Desktop\Vibe\data\mmu_reviewer_list.csv"
+        csv_path = os.path.join(DATA_DIR, "mmu_reviewer_list.csv")
 
         if not os.path.exists(csv_path):
             logger.warning(f"[Data Scraper] CSV file not found: {csv_path}")
@@ -218,3 +217,39 @@ def reload_experts():
             return pickle.load(f)
     except (FileNotFoundError, EOFError):
         return []
+
+
+def delete_reviewer(g_scholar_id):
+    """Permanently removes a reviewer from all three stores (JSON, PKL, SQLite).
+    Returns True if the reviewer was found and removed, False otherwise."""
+    found = False
+
+    # JSON (source of truth)
+    with open(REVIEWERS_DB_FILE, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    new_data = [p for p in data if p.get('g_scholar_id') != g_scholar_id]
+    if len(new_data) != len(data):
+        found = True
+        with open(REVIEWERS_DB_FILE, 'w', encoding='utf-8') as f:
+            json.dump(new_data, f, indent=4, ensure_ascii=False)
+
+    # PKL (embeddings)
+    try:
+        with open(REVIEWERS_PKL_FILE, 'rb') as f:
+            experts = pickle.load(f)
+        new_experts = [p for p in experts if p.get('g_scholar_id') != g_scholar_id]
+        if len(new_experts) != len(experts):
+            found = True
+            with open(REVIEWERS_PKL_FILE, 'wb') as f:
+                pickle.dump(new_experts, f)
+    except (FileNotFoundError, EOFError):
+        pass
+
+    # SQLite (index)
+    conn = sqlite3.connect(REVIEWERS_SQLITE_FILE)
+    cursor = conn.cursor()
+    cursor.execute('DELETE FROM reviewers WHERE g_scholar_id = ?', (g_scholar_id,))
+    conn.commit()
+    conn.close()
+
+    return found

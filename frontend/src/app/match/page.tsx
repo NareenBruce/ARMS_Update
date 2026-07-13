@@ -31,10 +31,42 @@ export default function MatchPage() {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
   const [batchFile, setBatchFile] = useState<File | null>(null);
   const [batchPreview, setBatchPreview] = useState<any[] | null>(null);
+  const [startYear, setStartYear] = useState(2020);
   const [loading, setLoading] = useState(false);
   const [results, setResults] = useState<MatchResponse | null>(null);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
   const resultsRef = useRef<HTMLDivElement>(null);
+
+  async function hideFromResults(id: string, name: string) {
+    try {
+      const res = await fetch(`${API_URL}/api/reviewers/hide`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ g_scholar_id: id }),
+      });
+      if (!res.ok) throw new Error("Failed to hide reviewer");
+      setResults((prev) => {
+        if (!prev) return prev;
+        const wasTop = prev.results[0]?.g_scholar_id === id;
+        return {
+          results: prev.results.filter((x) => x.g_scholar_id !== id),
+          // The justification describes the old #1 match — drop it if we removed them.
+          justification: wasTop ? "" : prev.justification,
+        };
+      });
+      setNotice(`${name} hidden — they won't appear in future matches. Manage this in the Database page.`);
+    } catch (err: any) {
+      setError(err.message);
+    }
+  }
+
+  // Publication-year filter options: 2020 (DB floor) → current year.
+  const currentYear = new Date().getFullYear();
+  const yearOptions = Array.from(
+    { length: Math.max(1, currentYear - 2020 + 1) },
+    (_, i) => 2020 + i
+  );
 
   // simple CSV parser that respects double quotes for preview
   function parseCSV(text: string) {
@@ -72,6 +104,7 @@ export default function MatchPage() {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setNotice("");
     setResults(null);
     setBatchPreview(null);
 
@@ -83,17 +116,19 @@ export default function MatchPage() {
         res = await fetch(`${API_URL}/api/match/manual`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title, abstract, keywords }),
+          body: JSON.stringify({ title, abstract, keywords, start_year: startYear }),
         });
       } else if (mode === "pdf") {
         if (!pdfFile) { setError("Please upload a PDF."); return; }
         const formData = new FormData();
         formData.append("file", pdfFile);
+        formData.append("start_year", String(startYear));
         res = await fetch(`${API_URL}/api/match/pdf`, { method: "POST", body: formData });
       } else {
         if (!batchFile) { setError("Please upload a CSV or JSON file."); return; }
         const formData = new FormData();
         formData.append("file", batchFile);
+        formData.append("start_year", String(startYear));
         res = await fetch(`${API_URL}/api/match/batch`, {
           method: "POST",
           body: formData,
@@ -154,9 +189,9 @@ export default function MatchPage() {
 
   function getReliabilityBadge(reliability: string) {
     switch (reliability) {
-      case "Specialist": return t.badge.specialist;
-      case "Moderate": return t.badge.moderate;
-      case "Generalist": return t.badge.generalist;
+      case "Strong Fit": return t.badge.strong;
+      case "Good Fit": return t.badge.good;
+      case "Weak Fit": return t.badge.weak;
       default: return t.badge.moderate;
     }
   }
@@ -253,6 +288,27 @@ export default function MatchPage() {
             </div>
           )}
 
+          {/* Publication-year filter — applies to all modes */}
+          <div className="mt-6">
+            <label className={`block text-sm ${t.mutedText} mb-1`}>Only consider publications from</label>
+            <select
+              value={startYear}
+              onChange={(e) => setStartYear(parseInt(e.target.value))}
+              className={`w-full ${t.inputBg} rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-violet-500`}
+            >
+              {yearOptions.map((y) => (
+                <option key={y} value={y}>
+                  {y === 2020 ? `${y} onwards (all publications)` : `${y} onwards`}
+                </option>
+              ))}
+            </select>
+            {startYear > 2020 && (
+              <p className={`${t.mutedText} text-xs mt-1 opacity-70`}>
+                Reviewers with no publications since {startYear} will be excluded from results.
+              </p>
+            )}
+          </div>
+
           <button type="submit" disabled={loading}
             className="w-full mt-6 bg-violet-600 hover:bg-violet-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-2.5 rounded-lg transition-colors">
             {loading ? "Analyzing..." : mode === "batch" ? "Process & Download CSV" : "Find Reviewers"}
@@ -266,6 +322,12 @@ export default function MatchPage() {
       {results && (
         <div ref={resultsRef} className="space-y-4">
           <h2 className="text-xl font-semibold mb-4">Top Matches</h2>
+
+          {notice && (
+            <div className="text-sm bg-violet-600/10 text-violet-600 border border-violet-600/20 rounded-lg px-4 py-2.5">
+              🙈 {notice}
+            </div>
+          )}
 
           <div className="grid gap-4 md:grid-cols-3">
             {results.results.map((r, i) => (
@@ -282,9 +344,19 @@ export default function MatchPage() {
                     </h3>
                     <p className={`${t.mutedText} text-sm`}>{r.university}</p>
                   </div>
-                  <span className="text-2xl font-bold text-violet-600">
-                    {Math.round(r.wtd_score * 100)}%
-                  </span>
+                  <div className="flex flex-col items-end gap-1 shrink-0">
+                    <span className="text-2xl font-bold text-violet-600">
+                      {Math.round(r.wtd_score * 100)}%
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => hideFromResults(r.g_scholar_id, r.name)}
+                      title="Hide this reviewer from future matches"
+                      className={`text-xs ${t.mutedText} hover:text-red-500 transition-colors`}
+                    >
+                      🙈 Hide
+                    </button>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2 mb-3">
@@ -299,11 +371,17 @@ export default function MatchPage() {
 
                 <div className="grid grid-cols-2 gap-2 text-sm mb-3">
                   <div className={`${t.statBg} rounded-lg p-2`}>
-                    <p className={`${t.mutedText} text-xs`}>Wtd Score</p>
+                    <p className={`${t.mutedText} text-xs flex items-center gap-1`}>
+                      Matching Score
+                      <InfoTip t={t} text="Overall match strength: the recency-weighted average of this reviewer's 3 best-matching papers against your topic. Scale 0–1, where higher means a stronger overall fit." />
+                    </p>
                     <p className="font-medium">{r.wtd_score.toFixed(4)}</p>
                   </div>
                   <div className={`${t.statBg} rounded-lg p-2`}>
-                    <p className={`${t.mutedText} text-xs`}>Wtd Max</p>
+                    <p className={`${t.mutedText} text-xs flex items-center gap-1`}>
+                      Top Paper Score
+                      <InfoTip t={t} text="Top matching paper: how closely this reviewer's top matching paper aligns with your topic (recency-weighted). Scale 0–1, where higher means a closer match." />
+                    </p>
                     <p className="font-medium">{r.wtd_max.toFixed(4)}</p>
                   </div>
                 </div>
@@ -397,5 +475,34 @@ export default function MatchPage() {
         </div>
       )}
     </div>
+  );
+}
+
+// Small info icon with a themed tooltip. Shows on hover (desktop) and toggles
+// on tap (touch), so the metric explanations are reachable everywhere.
+function InfoTip({ text, t }: { text: string; t: any }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <span className="relative inline-flex align-middle">
+      <button
+        type="button"
+        aria-label="More information"
+        onClick={(e) => { e.stopPropagation(); setOpen((v) => !v); }}
+        onMouseEnter={() => setOpen(true)}
+        onMouseLeave={() => setOpen(false)}
+        onBlur={() => setOpen(false)}
+        className={`${t.mutedText} hover:text-violet-500 cursor-help text-[11px] leading-none`}
+      >
+        ⓘ
+      </button>
+      {open && (
+        <span
+          role="tooltip"
+          className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 w-52 z-30 rounded-lg ${t.cardBg} border ${t.border} ${t.subText} text-[11px] font-normal normal-case leading-snug p-2 shadow-xl`}
+        >
+          {text}
+        </span>
+      )}
+    </span>
   );
 }

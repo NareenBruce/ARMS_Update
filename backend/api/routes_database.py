@@ -3,8 +3,12 @@ import sqlite3
 
 from fastapi import APIRouter
 
+from fastapi import HTTPException
+
 from config import REVIEWERS_DB_FILE, REVIEWERS_SQLITE_FILE
-from models import ReviewerItem, ReviewerStatsResponse
+from core.hidden import load_hidden, add_hidden, remove_hidden
+from core.embeddings import delete_reviewer, reload_experts
+from models import ReviewerItem, ReviewerStatsResponse, HideReviewerRequest, HiddenListResponse
 
 router = APIRouter(prefix="/api/reviewers", tags=["Database"])
 
@@ -53,5 +57,46 @@ async def get_reviewer_stats():
     return ReviewerStatsResponse(
         total=len(data),
         by_university=by_university,
-        unverified_count=unverified_count
+        unverified_count=unverified_count,
+        hidden_count=len(load_hidden())
     )
+
+
+@router.get("/hidden", response_model=HiddenListResponse)
+async def get_hidden():
+    """Returns the list of hidden (blocklisted) reviewer Scholar IDs."""
+    return HiddenListResponse(hidden_ids=sorted(load_hidden()))
+
+
+@router.post("/hide", response_model=HiddenListResponse)
+async def hide_reviewer(req: HideReviewerRequest):
+    """Adds a reviewer to the blocklist so they are excluded from matches."""
+    from main import app_state
+
+    app_state["hidden"] = add_hidden(req.g_scholar_id)
+    return HiddenListResponse(hidden_ids=sorted(app_state["hidden"]))
+
+
+@router.post("/unhide", response_model=HiddenListResponse)
+async def unhide_reviewer(req: HideReviewerRequest):
+    """Removes a reviewer from the blocklist so they can be matched again."""
+    from main import app_state
+
+    app_state["hidden"] = remove_hidden(req.g_scholar_id)
+    return HiddenListResponse(hidden_ids=sorted(app_state["hidden"]))
+
+
+@router.post("/delete")
+async def delete_reviewer_endpoint(req: HideReviewerRequest):
+    """Permanently deletes a reviewer from the JSON, PKL, and SQLite stores."""
+    from main import app_state
+
+    found = delete_reviewer(req.g_scholar_id)
+    if not found:
+        raise HTTPException(status_code=404, detail="Reviewer not found in database.")
+
+    # Refresh in-memory experts and drop any stale blocklist entry.
+    app_state["experts"] = reload_experts()
+    app_state["hidden"] = remove_hidden(req.g_scholar_id)
+
+    return {"status": "deleted", "g_scholar_id": req.g_scholar_id}

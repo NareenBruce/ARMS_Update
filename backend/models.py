@@ -8,6 +8,7 @@ class ManualMatchRequest(BaseModel):
     title: str
     abstract: Optional[str] = ""
     keywords: Optional[str] = ""
+    start_year: Optional[int] = 2020
 
 
 class SingleScrapeRequest(BaseModel):
@@ -18,6 +19,10 @@ class SingleScrapeRequest(BaseModel):
 
 class BatchScrapeRequest(BaseModel):
     university: str
+
+
+class HideReviewerRequest(BaseModel):
+    g_scholar_id: str
 
 
 # --- Response Models ---
@@ -50,6 +55,11 @@ class ReviewerStatsResponse(BaseModel):
     total: int
     by_university: dict[str, int]
     unverified_count: int
+    hidden_count: int = 0
+
+
+class HiddenListResponse(BaseModel):
+    hidden_ids: list[str]
 
 
 class ScrapeSingleResponse(BaseModel):

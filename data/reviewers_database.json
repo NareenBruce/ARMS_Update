@@ -59125,5 +59125,34 @@
                 "year": "2020"
             }
         ]
+    },
+    {
+        "name": "LE YING LIM",
+        "g_scholar_id": "g6yvfBoAAAAJ",
+        "university": "Sunway University",
+        "verified": true,
+        "email": "imail.sunway.edu.my",
+        "publications": [
+            {
+                "title": "Compact Environment in ISO 15693 HF RFID Tag Collision and Interference With KMC-PQ-RDCR Algorithm Recovery",
+                "link": "https://scholar.google.com/citations?view_op=view_citation&hl=en&user=g6yvfBoAAAAJ&pagesize=100&sortby=pubdate&citation_for_view=g6yvfBoAAAAJ:9yKSN-GCB0IC",
+                "year": "2025"
+            },
+            {
+                "title": "ELYRA: Edge-Optimized Lightweight YOLO with ROI Alignment for Real-Time SOP Compliance Monitoring in Crowded Environments",
+                "link": "https://scholar.google.com/citations?view_op=view_citation&hl=en&user=g6yvfBoAAAAJ&pagesize=100&sortby=pubdate&citation_for_view=g6yvfBoAAAAJ:u-x6o8ySG0sC",
+                "year": "2025"
+            },
+            {
+                "title": "Normalized least dependent difference: a method in solving incorrectly identified monotonic linearity relationship in linear regression",
+                "link": "https://scholar.google.com/citations?view_op=view_citation&hl=en&user=g6yvfBoAAAAJ&pagesize=100&sortby=pubdate&citation_for_view=g6yvfBoAAAAJ:u5HHmVD_uO8C",
+                "year": "2025"
+            },
+            {
+                "title": "Analysis of Forensic Disk Imaging Tools for Data Acquisition and Preservation",
+                "link": "https://scholar.google.com/citations?view_op=view_citation&hl=en&user=g6yvfBoAAAAJ&pagesize=100&sortby=pubdate&citation_for_view=g6yvfBoAAAAJ:d1gkVwhDpl0C",
+                "year": "2025"
+            }
+        ]
     }
 ]
