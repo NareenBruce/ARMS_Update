@@ -67,12 +67,16 @@ def get_expert_scores(expert, query_embedding, start_year=ACTIVE_YEAR_THRESHOLD)
     return top_3_mean, max_weighted, best_paper_title, top_3_titles, recency_label
 
 
-def run_matching(experts, model, title, abstract, keywords, start_year=ACTIVE_YEAR_THRESHOLD):
+def run_matching(experts, model, title, abstract, keywords, start_year=ACTIVE_YEAR_THRESHOLD, hidden=None):
     """Runs the full matching pipeline. Returns list of result dicts.
 
     start_year filters each reviewer's publications to those from that year
     onward before scoring. Defaults to ACTIVE_YEAR_THRESHOLD (the DB floor).
+
+    hidden is a set of g_scholar_ids to exclude from results (the user's
+    blocklist). Their data is untouched — they are simply skipped here.
     """
+    hidden = hidden or set()
     query_parts = [title]
     if keywords:
         query_parts.append(keywords)
@@ -86,6 +90,9 @@ def run_matching(experts, model, title, abstract, keywords, start_year=ACTIVE_YE
     expert_meta = {}
 
     for person in experts:
+        if person.get('g_scholar_id', '') in hidden:
+            continue
+
         mean, mx, best_paper, top_3_titles, recency_label = get_expert_scores(person, query_embedding, start_year)
 
         if mx > 0.25:

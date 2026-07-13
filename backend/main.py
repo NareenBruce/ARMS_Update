@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 
 from config import REVIEWERS_DB_FILE, REVIEWERS_PKL_FILE, MODEL_NAME
 from core.embeddings import init_embeddings, init_sqlite_db, reload_experts
+from core.hidden import load_hidden
 from api.routes_match import router as match_router
 from api.routes_database import router as database_router
 from api.routes_scrape import router as scrape_router
@@ -21,6 +22,7 @@ app_state = {
     "experts": [],
     "db_file": REVIEWERS_DB_FILE,
     "pkl_file": REVIEWERS_PKL_FILE,
+    "hidden": set(),
 }
 
 
@@ -40,7 +42,8 @@ async def lifespan(app: FastAPI):
     print("[*] Loading reviewer data...")
     init_sqlite_db()
     app_state["experts"] = reload_experts()
-    print(f"[OK] {len(app_state['experts'])} reviewers loaded.")
+    app_state["hidden"] = load_hidden()
+    print(f"[OK] {len(app_state['experts'])} reviewers loaded ({len(app_state['hidden'])} hidden).")
 
     yield
 

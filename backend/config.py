@@ -14,6 +14,7 @@ DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 REVIEWERS_DB_FILE = os.path.join(DATA_DIR, "reviewers_database.json")
 REVIEWERS_PKL_FILE = os.path.join(DATA_DIR, "reviewers_embeddings.pkl")
 REVIEWERS_SQLITE_FILE = os.path.join(DATA_DIR, "reviewers.db")
+HIDDEN_REVIEWERS_FILE = os.path.join(DATA_DIR, "hidden_reviewers.json")
 
 # --- Model ---
 MODEL_NAME = "sentence-transformers/allenai-specter"

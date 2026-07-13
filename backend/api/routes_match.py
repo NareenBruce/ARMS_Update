@@ -35,7 +35,8 @@ async def match_manual(req: ManualMatchRequest):
         title=req.title,
         abstract=req.abstract or "",
         keywords=req.keywords or "",
-        start_year=_clamp_start_year(req.start_year)
+        start_year=_clamp_start_year(req.start_year),
+        hidden=app_state["hidden"]
     )
     return result
 
@@ -81,7 +82,8 @@ async def match_pdf(
             title=final_title,
             abstract=final_abstract or "",
             keywords=final_keywords or "",
-            start_year=_clamp_start_year(start_year)
+            start_year=_clamp_start_year(start_year),
+            hidden=app_state["hidden"]
         )
         return result
     finally:
@@ -204,7 +206,8 @@ async def match_batch(
             title=title,
             abstract="",
             keywords="",
-            start_year=clamped_start_year
+            start_year=clamped_start_year,
+            hidden=app_state["hidden"]
         )
         results = match_res.get("results", [])
         

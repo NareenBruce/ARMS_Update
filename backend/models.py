@@ -21,6 +21,10 @@ class BatchScrapeRequest(BaseModel):
     university: str
 
 
+class HideReviewerRequest(BaseModel):
+    g_scholar_id: str
+
+
 # --- Response Models ---
 
 class MatchResult(BaseModel):
@@ -51,6 +55,11 @@ class ReviewerStatsResponse(BaseModel):
     total: int
     by_university: dict[str, int]
     unverified_count: int
+    hidden_count: int = 0
+
+
+class HiddenListResponse(BaseModel):
+    hidden_ids: list[str]
 
 
 class ScrapeSingleResponse(BaseModel):
