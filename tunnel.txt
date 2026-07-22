@@ -1,1 +1,7 @@
 8634387b-3920-4900-9ff1-8e22c317d315
+
+To run in web live:
+Run the docker container
+
+run tunnel in cmd:
+cloudflared tunnel run arms
